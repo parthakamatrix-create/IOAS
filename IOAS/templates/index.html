@@ -1,0 +1,143 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row mb-4 align-items-center">
+    <div class="col-md-6">
+        <h2><i class="fas fa-chart-pie"></i> Opportunities Dashboard</h2>
+        <p class="text-muted">Consolidated view of Hackathons, Competitions, and Conferences.</p>
+    </div>
+    <div class="col-md-6 text-md-end">
+        <form action="{{ url_for('run_scraper') }}" method="POST" class="d-inline">
+            <button type="submit" class="btn btn-primary"><i class="fas fa-sync-alt"></i> Run Aggregation Pipeline</button>
+        </form>
+        <form action="{{ url_for('send_alerts') }}" method="POST" class="d-inline">
+            <button type="submit" class="btn btn-success"><i class="fab fa-whatsapp"></i> Send WhatsApp Alerts</button>
+        </form>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card bg-light">
+            <div class="card-body">
+                <h5 class="card-title"><i class="fas fa-user-cog"></i> Personalize Your Alerts (Requirement #8)</h5>
+                <form action="{{ url_for('subscribe') }}" method="POST" class="row g-3">
+                    <div class="col-md-3">
+                        <input type="text" class="form-control" name="name" placeholder="Your Name" required>
+                    </div>
+                    <div class="col-md-3">
+                        <input type="text" class="form-control" name="phone" placeholder="WhatsApp Number" required>
+                    </div>
+                    <div class="col-md-3">
+                        <input type="text" class="form-control" name="interests" placeholder="Interests (e.g. AI, Web3, Case Study)">
+                    </div>
+                    <div class="col-md-3">
+                        <input type="text" class="form-control" name="branch" placeholder="Branch (e.g. CSBS)">
+                    </div>
+                    
+                    <div class="col-md-12">
+                        <div class="d-flex align-items-center gap-3 mt-2">
+                            <strong>Preferred Types:</strong>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="preferred_types" value="Hackathon" id="chkHack" checked>
+                                <label class="form-check-label" for="chkHack">Hackathons</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="preferred_types" value="Competition" id="chkComp" checked>
+                                <label class="form-check-label" for="chkComp">Competitions</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="preferred_types" value="Conference" id="chkConf" checked>
+                                <label class="form-check-label" for="chkConf">Conferences</label>
+                            </div>
+                            
+                            <div class="ms-auto form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="whatsappEnabled" name="whatsapp_enabled" checked>
+                                <label class="form-check-label" for="whatsappEnabled"><strong>Enable WhatsApp Alerts</strong></label>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary btn-sm px-4">Save Preferences</button>
+                        </div>
+                    </div>
+                </form>
+                {% if users %}
+                <div class="mt-3 small text-muted">
+                    <strong>Active Subscribers:</strong> {{ users|length }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Hackathons & Competitions -->
+    <div class="col-md-6">
+        <h4 class="mb-3">Hackathons & Competitions</h4>
+        
+        {% for opp in hackathons + competitions %}
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>{{ opp.title }}</span>
+                <span class="badge bg-info text-dark">{{ opp.source_platform }}</span>
+            </div>
+            <div class="card-body">
+                <p class="mb-1"><strong>Type:</strong> {{ opp.type }}</p>
+                {% if opp.registration_deadline %}
+                <p class="mb-1 text-danger"><i class="fas fa-stopwatch"></i> <strong>Registration:</strong> {{ opp.registration_deadline.strftime('%Y-%m-%d') }}</p>
+                {% endif %}
+                {% if opp.submission_deadline %}
+                <p class="mb-1 text-warning"><i class="fas fa-upload"></i> <strong>Submission:</strong> {{ opp.submission_deadline.strftime('%Y-%m-%d') }}</p>
+                {% endif %}
+                <a href="{{ opp.url }}" target="_blank" class="btn btn-sm btn-outline-primary mt-2">View Opportunity</a>
+            </div>
+        </div>
+        {% else %}
+        <div class="alert alert-secondary">No hackathons or competitions found. Run the aggregation pipeline.</div>
+        {% endfor %}
+    </div>
+    
+    <!-- Conferences -->
+    <div class="col-md-6">
+        <h4 class="mb-3">Scopus-Indexed Conferences</h4>
+        
+        {% for opp in conferences %}
+        <div class="card border-{{ 'success' if opp.is_scopus_indexed else 'secondary' }}">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>{{ opp.title }}</span>
+                {% if opp.is_scopus_indexed %}
+                <span class="badge badge-verified"><i class="fas fa-check-circle"></i> Verified Scopus</span>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                <p class="mb-1"><strong>Source:</strong> {{ opp.source_platform }}</p>
+                
+                <div class="mt-3 mb-2 small">
+                    <div class="d-flex justify-content-between border-bottom pb-1 mb-1">
+                        <span>Registration:</span> 
+                        <span class="fw-bold">{{ opp.registration_deadline.strftime('%Y-%m-%d') if opp.registration_deadline else 'N/A' }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between border-bottom pb-1 mb-1">
+                        <span>Submission:</span> 
+                        <span class="fw-bold">{{ opp.submission_deadline.strftime('%Y-%m-%d') if opp.submission_deadline else 'N/A' }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between border-bottom pb-1 mb-1">
+                        <span>Notification:</span> 
+                        <span class="fw-bold">{{ opp.notification_date.strftime('%Y-%m-%d') if opp.notification_date else 'N/A' }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span>Camera-Ready:</span> 
+                        <span class="fw-bold">{{ opp.camera_ready_deadline.strftime('%Y-%m-%d') if opp.camera_ready_deadline else 'N/A' }}</span>
+                    </div>
+                </div>
+                
+                <a href="{{ opp.url }}" target="_blank" class="btn btn-sm btn-outline-success mt-2">View Conference</a>
+            </div>
+        </div>
+        {% else %}
+        <div class="alert alert-secondary">No conferences found. Run the aggregation pipeline.</div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
